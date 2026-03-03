@@ -20,8 +20,8 @@ export async function submitEstimate(
   }
 
   try {
-    // Insert into submissions table and return the row ID
-    const { data, error: insertError } = await supabase
+    // Insert into submissions table
+    const { error: insertError } = await supabase
       .from("submissions")
       .insert({
         email,
@@ -32,14 +32,21 @@ export async function submitEstimate(
         estimate_currency: estimate.currency,
         match_count: estimate.matchCount,
         confidence: estimate.confidence,
-      })
-      .select("id")
-      .single();
+      });
 
     if (insertError) {
       console.warn("Failed to save submission:", insertError.message);
       return null;
     }
+
+    // Fetch the ID of the row we just inserted
+    const { data } = await supabase
+      .from("submissions")
+      .select("id")
+      .eq("email", email)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
     return data?.id ?? null;
   } catch {
