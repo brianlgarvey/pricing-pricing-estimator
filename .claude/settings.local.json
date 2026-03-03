@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tailwindcss init -p)",
+      "Bash(npx tsc -b)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where node)",
+      "Bash(npm run build)",
+      "Bash(npx vercel --yes --prod)",
+      "Bash(npx supabase functions deploy notify-submission --project-ref xtjvparkzxpqjqlfqobb --no-verify-jwt)",
+      "Bash(npx vercel alias pricing-pricing-estimator.vercel.app project-pricing-estimator.vercel.app)",
+      "Bash(git add .gitignore .claude/ eslint.config.js index.html package-lock.json package.json postcss.config.js public/ src/ supabase/ tailwind.config.js tsconfig.app.json tsconfig.json tsconfig.node.json vite.config.ts vitest.config.ts README.md)"
+    ]
+  }
+}
