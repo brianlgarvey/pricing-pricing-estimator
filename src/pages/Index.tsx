@@ -26,6 +26,7 @@ export default function Index() {
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const submissionIdPromiseRef = useRef<Promise<string | null>>(Promise.resolve(null));
   const [userEmail, setUserEmail] = useState<string>("");
   const [userDescription, setUserDescription] = useState<string>("");
 
@@ -72,9 +73,11 @@ export default function Index() {
           setUserDescription(description);
           setState("qualifying");
 
-          // Submit to Supabase (fire and forget)
-          // Email notification deferred to after qualification form
-          submitEstimate(email, description, estimate).then((id) => {
+          // Submit to Supabase — store the promise so qualification
+          // handler can await the ID even if it hasn't resolved yet
+          const idPromise = submitEstimate(email, description, estimate);
+          submissionIdPromiseRef.current = idPromise;
+          idPromise.then((id) => {
             if (id) setSubmissionId(id);
           });
         } catch (err) {
@@ -89,11 +92,14 @@ export default function Index() {
   );
 
   const handleQualificationSubmit = useCallback(
-    (jobTitle: string, expectedCost: string) => {
-      // Save qualification data + send notification email (fire and forget)
-      if (submissionId && priceEstimate) {
+    async (jobTitle: string, expectedCost: string) => {
+      setState("results");
+
+      // Await the submission ID if it hasn't resolved yet
+      const id = submissionId ?? (await submissionIdPromiseRef.current);
+      if (id && priceEstimate) {
         updateSubmissionQualification(
-          submissionId,
+          id,
           jobTitle,
           expectedCost,
           userEmail,
@@ -101,16 +107,15 @@ export default function Index() {
           priceEstimate
         );
       }
-      setState("results");
     },
     [submissionId, priceEstimate, userEmail, userDescription]
   );
 
   const handleFeedbackSubmit = useCallback(
-    (rating: string) => {
-      // Save feedback to Supabase (fire and forget)
-      if (submissionId) {
-        submitFeedback(submissionId, rating);
+    async (rating: string) => {
+      const id = submissionId ?? (await submissionIdPromiseRef.current);
+      if (id) {
+        submitFeedback(id, rating);
       }
     },
     [submissionId]
