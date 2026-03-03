@@ -41,13 +41,42 @@ export async function submitEstimate(
       return null;
     }
 
-    // Call the edge function to send notification email
+    return data?.id ?? null;
+  } catch {
+    console.warn("Failed to submit estimate");
+    return null;
+  }
+}
+
+export async function updateSubmissionQualification(
+  submissionId: string,
+  jobTitle: string,
+  expectedCost: string,
+  email: string,
+  description: string,
+  estimate: PriceEstimate
+): Promise<void> {
+  if (!supabase || !submissionId) return;
+
+  try {
+    const { error } = await supabase
+      .from("submissions")
+      .update({ job_title: jobTitle, expected_cost: expectedCost })
+      .eq("id", submissionId);
+
+    if (error) {
+      console.warn("Failed to save qualification:", error.message);
+    }
+
+    // Send notification email now that we have qualification data
     const { error: fnError } = await supabase.functions.invoke(
       "notify-submission",
       {
         body: {
           email,
           description,
+          jobTitle,
+          expectedCost,
           estimate: {
             low: estimate.low,
             typical: estimate.typical,
@@ -62,30 +91,6 @@ export async function submitEstimate(
 
     if (fnError) {
       console.warn("Failed to send notification:", fnError.message);
-    }
-
-    return data?.id ?? null;
-  } catch {
-    console.warn("Failed to submit estimate");
-    return null;
-  }
-}
-
-export async function updateSubmissionQualification(
-  submissionId: string,
-  jobTitle: string,
-  expectedCost: string
-): Promise<void> {
-  if (!supabase || !submissionId) return;
-
-  try {
-    const { error } = await supabase
-      .from("submissions")
-      .update({ job_title: jobTitle, expected_cost: expectedCost })
-      .eq("id", submissionId);
-
-    if (error) {
-      console.warn("Failed to save qualification:", error.message);
     }
   } catch {
     console.warn("Failed to update qualification");
@@ -106,6 +111,18 @@ export async function submitFeedback(
 
     if (error) {
       console.warn("Failed to save feedback:", error.message);
+    }
+
+    // Send follow-up notification with feedback
+    const { error: fnError } = await supabase.functions.invoke(
+      "notify-feedback",
+      {
+        body: { submissionId, rating },
+      }
+    );
+
+    if (fnError) {
+      console.warn("Failed to send feedback notification:", fnError.message);
     }
   } catch {
     console.warn("Failed to submit feedback");

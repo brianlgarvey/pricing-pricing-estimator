@@ -26,6 +26,8 @@ export default function Index() {
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userDescription, setUserDescription] = useState<string>("");
 
   useEffect(() => {
     async function init() {
@@ -66,10 +68,12 @@ export default function Index() {
 
           setMatches(similar);
           setPriceEstimate(estimate);
+          setUserEmail(email);
+          setUserDescription(description);
           setState("qualifying");
 
-          // Submit to Supabase + send email notification (fire and forget)
-          // Store the returned submission ID for later updates
+          // Submit to Supabase (fire and forget)
+          // Email notification deferred to after qualification form
           submitEstimate(email, description, estimate).then((id) => {
             if (id) setSubmissionId(id);
           });
@@ -86,13 +90,20 @@ export default function Index() {
 
   const handleQualificationSubmit = useCallback(
     (jobTitle: string, expectedCost: string) => {
-      // Save qualification data to Supabase (fire and forget)
-      if (submissionId) {
-        updateSubmissionQualification(submissionId, jobTitle, expectedCost);
+      // Save qualification data + send notification email (fire and forget)
+      if (submissionId && priceEstimate) {
+        updateSubmissionQualification(
+          submissionId,
+          jobTitle,
+          expectedCost,
+          userEmail,
+          userDescription,
+          priceEstimate
+        );
       }
       setState("results");
     },
-    [submissionId]
+    [submissionId, priceEstimate, userEmail, userDescription]
   );
 
   const handleFeedbackSubmit = useCallback(
@@ -109,6 +120,8 @@ export default function Index() {
     setMatches([]);
     setPriceEstimate(null);
     setSubmissionId(null);
+    setUserEmail("");
+    setUserDescription("");
     setState("ready");
   }, []);
 
