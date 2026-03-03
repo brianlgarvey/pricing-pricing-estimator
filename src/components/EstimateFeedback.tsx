@@ -31,7 +31,7 @@ export function EstimateFeedback({ onSubmit }: EstimateFeedbackProps) {
 
   // Show the popup after a short delay so results render first
   useEffect(() => {
-    const timer = setTimeout(() => setOpen(true), 800);
+    const timer = setTimeout(() => setOpen(true), 10000);
     return () => clearTimeout(timer);
   }, []);
 
