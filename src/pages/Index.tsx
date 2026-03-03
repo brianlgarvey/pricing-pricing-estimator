@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProjectInput } from "@/components/ProjectInput";
+import { QualificationForm } from "@/components/QualificationForm";
 import { PriceDisplay } from "@/components/PriceDisplay";
+import { EstimateFeedback } from "@/components/EstimateFeedback";
 import { SimilarProjectsList } from "@/components/SimilarProjectsList";
 import { PriceChart } from "@/components/PriceChart";
 import { loadProposals } from "@/lib/csvParser";
@@ -10,10 +12,10 @@ import { buildCorpus, findSimilar, type TfIdfCorpus, type SimilarMatch } from "@
 import { analyzeScopeSignals } from "@/lib/scopeAnalyzer";
 import { calculatePriceEstimate, type PriceEstimate } from "@/lib/priceCalculator";
 import { Disclaimer, MatchCta } from "@/components/DisclaimerCta";
-import { submitEstimate } from "@/lib/supabase";
+import { submitEstimate, updateSubmissionQualification, submitFeedback } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
 
-type AppState = "loading" | "ready" | "analyzing" | "results" | "error";
+type AppState = "loading" | "ready" | "analyzing" | "qualifying" | "results" | "error";
 
 export default function Index() {
   const [state, setState] = useState<AppState>("loading");
@@ -23,6 +25,7 @@ export default function Index() {
   // Results
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -63,10 +66,13 @@ export default function Index() {
 
           setMatches(similar);
           setPriceEstimate(estimate);
-          setState("results");
+          setState("qualifying");
 
           // Submit to Supabase + send email notification (fire and forget)
-          submitEstimate(email, description, estimate);
+          // Store the returned submission ID for later updates
+          submitEstimate(email, description, estimate).then((id) => {
+            if (id) setSubmissionId(id);
+          });
         } catch (err) {
           setError(
             err instanceof Error ? err.message : "Analysis failed"
@@ -78,9 +84,31 @@ export default function Index() {
     []
   );
 
+  const handleQualificationSubmit = useCallback(
+    (jobTitle: string, expectedCost: string) => {
+      // Save qualification data to Supabase (fire and forget)
+      if (submissionId) {
+        updateSubmissionQualification(submissionId, jobTitle, expectedCost);
+      }
+      setState("results");
+    },
+    [submissionId]
+  );
+
+  const handleFeedbackSubmit = useCallback(
+    (rating: string) => {
+      // Save feedback to Supabase (fire and forget)
+      if (submissionId) {
+        submitFeedback(submissionId, rating);
+      }
+    },
+    [submissionId]
+  );
+
   const handleReset = useCallback(() => {
     setMatches([]);
     setPriceEstimate(null);
+    setSubmissionId(null);
     setState("ready");
   }, []);
 
@@ -121,6 +149,10 @@ export default function Index() {
           />
         )}
 
+        {state === "qualifying" && (
+          <QualificationForm onSubmit={handleQualificationSubmit} />
+        )}
+
         {state === "results" && priceEstimate && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -136,6 +168,8 @@ export default function Index() {
             <PriceDisplay estimate={priceEstimate} />
 
             <Disclaimer />
+
+            <EstimateFeedback onSubmit={handleFeedbackSubmit} />
 
             {matches.length >= 3 && (
               <PriceChart matches={matches} estimate={priceEstimate} />
