@@ -54,8 +54,13 @@ export function QualificationForm({ onSubmit }: QualificationFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="expectedCost">
-              Before seeing results, what's your rough budget or guess for this project?
+              What's your expectation or best guess for how much this project
+              should cost?
             </Label>
+            <p className="text-xs text-muted-foreground">
+              Your answer is for reference purposes only. It won't impact your
+              results whatsoever.
+            </p>
             <input
               id="expectedCost"
               type="text"
