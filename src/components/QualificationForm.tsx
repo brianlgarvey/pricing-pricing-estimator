@@ -10,20 +10,34 @@ import {
 } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
 
+const COMPANY_SIZE_OPTIONS = [
+  { value: "", label: "Select company size..." },
+  { value: "1-10", label: "1–10 employees" },
+  { value: "11-50", label: "11–50 employees" },
+  { value: "51-200", label: "51–200 employees" },
+  { value: "201-1000", label: "201–1,000 employees" },
+  { value: "1001-5000", label: "1,001–5,000 employees" },
+  { value: "5000+", label: "5,000+ employees" },
+];
+
 interface QualificationFormProps {
-  onSubmit: (jobTitle: string, expectedCost: string) => void;
+  onSubmit: (jobTitle: string, expectedCost: string, companySize: string) => void;
 }
 
 export function QualificationForm({ onSubmit }: QualificationFormProps) {
   const [jobTitle, setJobTitle] = useState("");
   const [expectedCost, setExpectedCost] = useState("");
+  const [companySize, setCompanySize] = useState("");
 
-  const canSubmit = jobTitle.trim().length > 0 && expectedCost.trim().length > 0;
+  const canSubmit =
+    jobTitle.trim().length > 0 &&
+    expectedCost.trim().length > 0 &&
+    companySize.length > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (canSubmit) {
-      onSubmit(jobTitle.trim(), expectedCost.trim());
+      onSubmit(jobTitle.trim(), expectedCost.trim(), companySize);
     }
   };
 
@@ -50,6 +64,23 @@ export function QualificationForm({ onSubmit }: QualificationFormProps) {
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="companySize">Company Size</Label>
+            <select
+              id="companySize"
+              value={companySize}
+              onChange={(e) => setCompanySize(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              required
+            >
+              {COMPANY_SIZE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value} disabled={opt.value === ""}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">

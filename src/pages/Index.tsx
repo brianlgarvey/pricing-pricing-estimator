@@ -92,7 +92,7 @@ export default function Index() {
   );
 
   const handleQualificationSubmit = useCallback(
-    async (jobTitle: string, expectedCost: string) => {
+    async (jobTitle: string, expectedCost: string, companySize: string) => {
       setState("results");
 
       // Await the submission ID if it hasn't resolved yet
@@ -102,6 +102,7 @@ export default function Index() {
           id,
           jobTitle,
           expectedCost,
+          companySize,
           userEmail,
           userDescription,
           priceEstimate

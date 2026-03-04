@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
     const { data: submission, error: fetchError } = await supabase
       .from("submissions")
-      .select("email, description, job_title, expected_cost, estimate_low, estimate_typical, estimate_high, estimate_currency")
+      .select("email, description, job_title, expected_cost, company_size, estimate_low, estimate_typical, estimate_high, estimate_currency")
       .eq("id", submissionId)
       .single();
 
@@ -95,6 +95,10 @@ Deno.serve(async (req) => {
             <tr>
               <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Their Estimate</td>
               <td style="padding: 8px 0; font-weight: 600;">${submission.expected_cost}</td>
+            </tr>` : ""}${submission.company_size ? `
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Company Size</td>
+              <td style="padding: 8px 0; font-weight: 600;">${submission.company_size} employees</td>
             </tr>` : ""}
           </table>
         </div>

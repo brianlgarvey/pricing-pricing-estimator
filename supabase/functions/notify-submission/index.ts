@@ -8,6 +8,7 @@ interface EstimatePayload {
   description: string;
   jobTitle?: string;
   expectedCost?: string;
+  companySize?: string;
   estimate: {
     low: number;
     typical: number;
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, description, jobTitle, expectedCost, estimate }: EstimatePayload = await req.json();
+    const { email, description, jobTitle, expectedCost, companySize, estimate }: EstimatePayload = await req.json();
 
     if (!RESEND_API_KEY) {
       console.error("RESEND_API_KEY not configured");
@@ -78,6 +79,10 @@ Deno.serve(async (req) => {
             <tr>
               <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Their Estimate</td>
               <td style="padding: 8px 0; font-weight: 600;">${expectedCost}</td>
+            </tr>` : ""}${companySize ? `
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Company Size</td>
+              <td style="padding: 8px 0; font-weight: 600;">${companySize} employees</td>
             </tr>` : ""}
           </table>
         </div>

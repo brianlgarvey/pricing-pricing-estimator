@@ -59,6 +59,7 @@ export async function updateSubmissionQualification(
   submissionId: string,
   jobTitle: string,
   expectedCost: string,
+  companySize: string,
   email: string,
   description: string,
   estimate: PriceEstimate
@@ -68,7 +69,7 @@ export async function updateSubmissionQualification(
   try {
     const { error } = await supabase
       .from("submissions")
-      .update({ job_title: jobTitle, expected_cost: expectedCost })
+      .update({ job_title: jobTitle, expected_cost: expectedCost, company_size: companySize })
       .eq("id", submissionId);
 
     if (error) {
@@ -84,6 +85,7 @@ export async function updateSubmissionQualification(
           description,
           jobTitle,
           expectedCost,
+          companySize,
           estimate: {
             low: estimate.low,
             typical: estimate.typical,
