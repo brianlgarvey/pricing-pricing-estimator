@@ -32,8 +32,9 @@ export function QualificationForm({ onSubmit }: QualificationFormProps) {
       <CardHeader>
         <CardTitle className="text-lg">Almost there!</CardTitle>
         <CardDescription>
-          Help us calibrate — tell us a bit about yourself and what you expect to
-          spend.
+          Help us calibrate — tell us a bit about yourself and your initial
+          expectations. Your answers here won't impact your results and are for
+          reference purposes only.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -53,7 +54,7 @@ export function QualificationForm({ onSubmit }: QualificationFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="expectedCost">
-              What do you expect this project to cost?
+              Before seeing results, what's your rough budget or guess for this project?
             </Label>
             <input
               id="expectedCost"
