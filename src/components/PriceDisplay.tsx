@@ -75,7 +75,7 @@ export function PriceDisplay({ estimate, matches }: PriceDisplayProps) {
           <div className="text-center p-4 rounded-lg bg-primary/5 border-2 border-primary/20">
             <Target className="w-5 h-5 mx-auto mb-2 text-primary" />
             <p className="text-xs text-primary font-medium uppercase tracking-wide">
-              Estimated Price
+              Avg Top 10 Similar Projects
             </p>
             <p className="text-2xl font-bold mt-1 text-primary">
               {formatCurrency(avgTop10, estimate.currency)}
