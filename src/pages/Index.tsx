@@ -11,7 +11,7 @@ import { loadProposals } from "@/lib/csvParser";
 import { buildCorpus, findSimilar, type TfIdfCorpus, type SimilarMatch } from "@/lib/similarity";
 import { analyzeScopeSignals } from "@/lib/scopeAnalyzer";
 import { calculatePriceEstimate, type PriceEstimate } from "@/lib/priceCalculator";
-import { Disclaimer, MatchCta } from "@/components/DisclaimerCta";
+import { Disclaimer } from "@/components/DisclaimerCta";
 import { submitEstimate, submitFeedback } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
 
@@ -148,21 +148,12 @@ export default function Index() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Analysis Results</h2>
-              <div className="flex items-center gap-3 text-sm">
-                <a
-                  href="https://rfp-agent-brown.vercel.app"
-                  className="text-primary hover:underline"
-                >
-                  Create a new brief
-                </a>
-                <span className="text-gray-300">|</span>
-                <button
-                  onClick={handleReset}
-                  className="text-primary hover:underline"
-                >
-                  New estimate
-                </button>
-              </div>
+              <button
+                onClick={handleReset}
+                className="text-sm text-primary hover:underline"
+              >
+                New estimate
+              </button>
             </div>
 
             <PriceDisplay estimate={priceEstimate} matches={matches} />
@@ -175,7 +166,22 @@ export default function Index() {
               <PriceChart matches={matches} estimate={priceEstimate} />
             )}
 
-            <MatchCta />
+            <div className="flex items-center justify-center gap-3 py-4">
+              <a
+                href="https://rfp-agent-brown.vercel.app"
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+              >
+                Create a new brief
+              </a>
+              <a
+                href="https://profound.ly/get-started?hsCtaAttrib=193271833768"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+              >
+                Get matched with experts
+              </a>
+            </div>
 
             <SimilarProjectsList matches={matches} />
           </div>
