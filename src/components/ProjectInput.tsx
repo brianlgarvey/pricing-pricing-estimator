@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Search, Loader2 } from "lucide-react";
 
 interface ProjectInputProps {
-  onAnalyze: (description: string, email: string) => void;
+  onSubmitDescription: (description: string) => void;
+  onAutoSubmit?: (description: string, email: string) => void;
   isAnalyzing: boolean;
 }
 
-export function ProjectInput({ onAnalyze, isAnalyzing }: ProjectInputProps) {
+export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }: ProjectInputProps) {
   const [description, setDescription] = useState("");
-  const [email, setEmail] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -20,24 +20,21 @@ export function ProjectInput({ onAnalyze, isAnalyzing }: ProjectInputProps) {
     const urlEmail = params.get("email");
     if (urlDescription && urlEmail) {
       setDescription(urlDescription);
-      setEmail(urlEmail);
       const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(urlEmail);
-      if (urlDescription.trim() && validEmail) {
-        onAnalyze(urlDescription.trim(), urlEmail.trim());
+      if (urlDescription.trim() && validEmail && onAutoSubmit) {
+        onAutoSubmit(urlDescription.trim(), urlEmail.trim());
       }
-    } else {
-      if (urlDescription) setDescription(urlDescription);
-      if (urlEmail) setEmail(urlEmail);
+    } else if (urlDescription) {
+      setDescription(urlDescription);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const canSubmit = description.trim() && isValidEmail && !isAnalyzing;
+  const canSubmit = description.trim() && !isAnalyzing;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (canSubmit) {
-      onAnalyze(description.trim(), email.trim());
+      onSubmitDescription(description.trim());
     }
   };
 
@@ -61,20 +58,6 @@ export function ProjectInput({ onAnalyze, isAnalyzing }: ProjectInputProps) {
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[120px] resize-y"
               disabled={isAnalyzing}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isAnalyzing}
-              required
             />
           </div>
 

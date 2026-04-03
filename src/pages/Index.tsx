@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProjectInput } from "@/components/ProjectInput";
-
+import { EmailCaptureModal, type ContactInfo } from "@/components/EmailCaptureModal";
 import { PriceDisplay } from "@/components/PriceDisplay";
 import { EstimateFeedback } from "@/components/EstimateFeedback";
 import { SimilarProjectsList } from "@/components/SimilarProjectsList";
@@ -15,12 +15,15 @@ import { Disclaimer } from "@/components/DisclaimerCta";
 import { submitEstimate, submitFeedback } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
 
-type AppState = "loading" | "ready" | "analyzing" | "results" | "error";
+type AppState = "loading" | "ready" | "email-capture" | "analyzing" | "results" | "error";
 
 export default function Index() {
   const [state, setState] = useState<AppState>("loading");
   const [error, setError] = useState<string>("");
   const corpusRef = useRef<TfIdfCorpus | null>(null);
+
+  // Pending description (submitted before email capture)
+  const [pendingDescription, setPendingDescription] = useState("");
 
   // Results
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
@@ -45,33 +48,23 @@ export default function Index() {
     init();
   }, []);
 
-  const handleAnalyze = useCallback(
+  const runAnalysis = useCallback(
     (description: string, email: string) => {
       if (!corpusRef.current) return;
 
       setState("analyzing");
 
-      // Use setTimeout to allow UI to update before heavy computation
       setTimeout(() => {
         try {
           const corpus = corpusRef.current!;
-
-          // Find similar projects
           const similar = findSimilar(description, corpus);
-
-          // Analyze scope
           const scope = analyzeScopeSignals(description);
-
-          // Calculate price estimate
           const estimate = calculatePriceEstimate(similar, scope);
 
           setMatches(similar);
           setPriceEstimate(estimate);
-
           setState("results");
 
-          // Submit to Supabase — store the promise so qualification
-          // handler can await the ID even if it hasn't resolved yet
           const idPromise = submitEstimate(email, description, estimate);
           submissionIdPromiseRef.current = idPromise;
           idPromise.then((id) => {
@@ -88,6 +81,32 @@ export default function Index() {
     []
   );
 
+  // Called when user submits description (no email yet)
+  const handleDescriptionSubmit = useCallback(
+    (description: string) => {
+      setPendingDescription(description);
+      setState("email-capture");
+    },
+    []
+  );
+
+  // Called when URL has both description and email (auto-submit from RFP tool)
+  const handleAutoSubmit = useCallback(
+    (description: string, email: string) => {
+      setPendingDescription(description);
+      runAnalysis(description, email);
+    },
+    [runAnalysis]
+  );
+
+  // Called when user submits email in the modal
+  const handleEmailSubmit = useCallback(
+    (contact: ContactInfo) => {
+      runAnalysis(pendingDescription, contact.email);
+    },
+    [pendingDescription, runAnalysis]
+  );
+
   const handleFeedbackSubmit = useCallback(
     async (rating: string) => {
       const id = submissionId ?? (await submissionIdPromiseRef.current);
@@ -99,11 +118,11 @@ export default function Index() {
   );
 
   const handleReset = useCallback(() => {
-    // Clear URL params so auto-submit doesn't re-trigger
     window.history.replaceState({}, "", window.location.pathname);
     setMatches([]);
     setPriceEstimate(null);
     setSubmissionId(null);
+    setPendingDescription("");
     setState("ready");
   }, []);
 
@@ -139,9 +158,22 @@ export default function Index() {
 
         {(state === "ready" || state === "analyzing") && (
           <ProjectInput
-            onAnalyze={handleAnalyze}
+            onSubmitDescription={handleDescriptionSubmit}
+            onAutoSubmit={handleAutoSubmit}
             isAnalyzing={state === "analyzing"}
           />
+        )}
+
+        {state === "email-capture" && (
+          <div className="relative">
+            <div className="blur-sm brightness-[0.97] pointer-events-none select-none">
+              <ProjectInput
+                onSubmitDescription={() => {}}
+                isAnalyzing={false}
+              />
+            </div>
+            <EmailCaptureModal open={true} onSubmit={handleEmailSubmit} />
+          </div>
         )}
 
         {state === "results" && priceEstimate && (
