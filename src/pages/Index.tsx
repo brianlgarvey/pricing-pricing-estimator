@@ -12,7 +12,7 @@ import { buildCorpus, findSimilar, type TfIdfCorpus, type SimilarMatch } from "@
 import { analyzeScopeSignals } from "@/lib/scopeAnalyzer";
 import { calculatePriceEstimate, type PriceEstimate } from "@/lib/priceCalculator";
 import { Disclaimer } from "@/components/DisclaimerCta";
-import { submitEstimate, submitFeedback } from "@/lib/supabase";
+import { submitEstimate } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
 
 type AppState = "loading" | "ready" | "email-capture" | "analyzing" | "results" | "error";
@@ -107,15 +107,7 @@ export default function Index() {
     [pendingDescription, runAnalysis]
   );
 
-  const handleFeedbackSubmit = useCallback(
-    async (rating: string) => {
-      const id = submissionId ?? (await submissionIdPromiseRef.current);
-      if (id) {
-        submitFeedback(id, rating);
-      }
-    },
-    [submissionId]
-  );
+
 
   const handleReset = useCallback(() => {
     window.history.replaceState({}, "", window.location.pathname);
@@ -192,7 +184,7 @@ export default function Index() {
 
             <Disclaimer />
 
-            <EstimateFeedback onSubmit={handleFeedbackSubmit} />
+            <EstimateFeedback />
 
             {matches.length >= 3 && (
               <PriceChart matches={matches} estimate={priceEstimate} />
