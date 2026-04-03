@@ -64,11 +64,7 @@ export default function Index() {
           setPriceEstimate(estimate);
           setState("results");
 
-          const idPromise = submitEstimate(email, description, estimate);
-          submissionIdPromiseRef.current = idPromise;
-          idPromise.then((id) => {
-            // ID stored in ref for future use
-          });
+          submissionIdPromiseRef.current = submitEstimate(email, description, estimate);
         } catch (err) {
           setError(
             err instanceof Error ? err.message : "Analysis failed"
