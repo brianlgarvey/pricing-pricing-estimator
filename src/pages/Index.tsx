@@ -28,7 +28,6 @@ export default function Index() {
   // Results
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(null);
-  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const submissionIdPromiseRef = useRef<Promise<string | null>>(Promise.resolve(null));
 
   useEffect(() => {
@@ -68,7 +67,7 @@ export default function Index() {
           const idPromise = submitEstimate(email, description, estimate);
           submissionIdPromiseRef.current = idPromise;
           idPromise.then((id) => {
-            if (id) setSubmissionId(id);
+            // ID stored in ref for future use
           });
         } catch (err) {
           setError(
@@ -113,7 +112,6 @@ export default function Index() {
     window.history.replaceState({}, "", window.location.pathname);
     setMatches([]);
     setPriceEstimate(null);
-    setSubmissionId(null);
     setPendingDescription("");
     setState("ready");
   }, []);
