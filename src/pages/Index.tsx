@@ -166,23 +166,6 @@ export default function Index() {
               <PriceChart matches={matches} estimate={priceEstimate} />
             )}
 
-            <div className="flex items-center justify-center gap-3 py-4">
-              <a
-                href="https://rfp-agent-brown.vercel.app"
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
-              >
-                Create a new brief
-              </a>
-              <a
-                href="https://profound.ly/get-started?hsCtaAttrib=193271833768"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
-              >
-                Get matched with experts
-              </a>
-            </div>
-
             <SimilarProjectsList matches={matches} />
           </div>
         )}

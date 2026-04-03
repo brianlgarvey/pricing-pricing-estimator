@@ -8,6 +8,30 @@ export function Header() {
           className="h-8"
         />
       </a>
+      <nav className="flex items-center gap-2 text-sm">
+        <a
+          href="https://rfp-agent-brown.vercel.app"
+          className="flex items-center gap-1.5 text-gray-400 transition-colors hover:text-gray-600"
+        >
+          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[11px] text-gray-400">1</span>
+          Brief
+        </a>
+        <div className="h-px w-6 bg-gray-300" />
+        <span className="flex items-center gap-1.5 font-semibold text-gray-900">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-900 text-[11px] text-white">2</span>
+          Estimate
+        </span>
+        <div className="h-px w-6 bg-gray-300" />
+        <a
+          href="https://profound.ly/get-started?hsCtaAttrib=193271833768"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-gray-400 transition-colors hover:text-gray-600"
+        >
+          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[11px] text-gray-400">3</span>
+          Quote
+        </a>
+      </nav>
     </header>
   );
 }
