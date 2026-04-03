@@ -1,6 +1,6 @@
 export function Header() {
   return (
-    <header className="flex items-center justify-between border-b border-[#E5E7EB] bg-white px-4 py-3">
+    <header className="relative flex items-center border-b border-[#E5E7EB] bg-white px-4 py-3">
       <a href="https://profound.ly" target="_blank" rel="noopener noreferrer">
         <img
           src="https://profound.ly/hs-fs/hubfs/Graphics/Logo/White%20Background/fulllogo_transparent_nobuffer.png"
@@ -8,7 +8,7 @@ export function Header() {
           className="h-8"
         />
       </a>
-      <nav className="flex items-center gap-2 text-sm">
+      <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 text-sm">
         <a
           href="https://rfp-agent-brown.vercel.app"
           className="flex items-center gap-1.5 text-gray-400 transition-colors hover:text-gray-600"
