@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Search, Loader2 } from "lucide-react";
 
 interface ProjectInputProps {
@@ -39,48 +37,42 @@ export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }:
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Describe Your Project</CardTitle>
-        <CardDescription>
-          Enter a description of your HubSpot project to get a price estimate
-          based on similar historical projects.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="description">Project Description</Label>
-            <Textarea
-              id="description"
-              placeholder="e.g., We need to set up HubSpot Marketing Hub Professional with custom workflows, lead scoring, and integration with our existing Salesforce CRM..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[120px] resize-y"
-              disabled={isAnalyzing}
-            />
-          </div>
+    <div className="mx-auto max-w-3xl py-8">
+      <div className="mb-6 text-center">
+        <h2 className="text-2xl font-semibold tracking-tight">Describe Your Project</h2>
+        <p className="mt-2 text-muted-foreground">
+          Enter a description of your HubSpot project to get a price estimate based on similar historical projects.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Textarea
+          id="description"
+          placeholder="e.g., We need to set up HubSpot Marketing Hub Professional with custom workflows, lead scoring, and integration with our existing Salesforce CRM..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="min-h-[200px] resize-y text-[15px]"
+          disabled={isAnalyzing}
+        />
 
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            className="w-full"
-            size="lg"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Search className="mr-2 h-4 w-4" />
-                Get Price Estimate
-              </>
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <Button
+          type="submit"
+          disabled={!canSubmit}
+          className="w-full"
+          size="lg"
+        >
+          {isAnalyzing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <Search className="mr-2 h-4 w-4" />
+              Get Price Estimate
+            </>
+          )}
+        </Button>
+      </form>
+    </div>
   );
 }
