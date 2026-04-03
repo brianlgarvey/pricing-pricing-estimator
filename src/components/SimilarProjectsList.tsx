@@ -38,7 +38,7 @@ export function SimilarProjectsList({
           <div>
             <CardTitle className="text-lg">Similar Projects</CardTitle>
             <CardDescription>
-              Top {displayed.length} most similar historical proposals
+              Top {displayed.length} most similar historical projects
             </CardDescription>
           </div>
         </div>

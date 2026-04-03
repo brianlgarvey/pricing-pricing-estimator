@@ -14,9 +14,10 @@ import { TrendingUp, TrendingDown, Target } from "lucide-react";
 interface PriceDisplayProps {
   estimate: PriceEstimate;
   closestMatch?: SimilarMatch;
+  matches?: SimilarMatch[];
 }
 
-export function PriceDisplay({ estimate, closestMatch }: PriceDisplayProps) {
+export function PriceDisplay({ estimate, closestMatch, matches }: PriceDisplayProps) {
   const confidenceColors = {
     low: "bg-amber-100 text-amber-800 border-amber-200",
     medium: "bg-blue-100 text-blue-800 border-blue-200",
@@ -29,6 +30,13 @@ export function PriceDisplay({ estimate, closestMatch }: PriceDisplayProps) {
     high: "High Confidence",
   };
 
+  // Compute actual min/max from all matched projects
+  const prices = matches
+    ?.map((m) => m.proposal.proposed_price)
+    .filter((p) => p > 0) ?? [];
+  const lowPrice = prices.length > 0 ? Math.min(...prices) : estimate.low;
+  const highPrice = prices.length > 0 ? Math.max(...prices) : estimate.high;
+
   return (
     <Card>
       <CardHeader>
@@ -36,7 +44,7 @@ export function PriceDisplay({ estimate, closestMatch }: PriceDisplayProps) {
           <div>
             <CardTitle className="text-lg">Price Estimate</CardTitle>
             <CardDescription>
-              Based on {estimate.matchCount} similar proposals
+              Based on {estimate.matchCount} similar projects
             </CardDescription>
           </div>
           <Badge className={confidenceColors[estimate.confidence]} variant="outline">
@@ -44,54 +52,43 @@ export function PriceDisplay({ estimate, closestMatch }: PriceDisplayProps) {
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {closestMatch && (
-          <div className="text-center p-5 rounded-lg bg-primary/5 border-2 border-primary/20">
+      <CardContent>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-4 rounded-lg bg-secondary/50">
+            <TrendingDown className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              Low End
+            </p>
+            <p className="text-xl font-bold mt-1">
+              {formatCurrency(lowPrice, estimate.currency)}
+            </p>
+          </div>
+
+          <div className="text-center p-4 rounded-lg bg-primary/5 border-2 border-primary/20">
             <Target className="w-5 h-5 mx-auto mb-2 text-primary" />
             <p className="text-xs text-primary font-medium uppercase tracking-wide">
               Closest Match
             </p>
-            <p className="text-3xl font-bold mt-1 text-primary">
-              {formatCurrency(closestMatch.proposal.proposed_price, closestMatch.proposal.currency)}
+            <p className="text-2xl font-bold mt-1 text-primary">
+              {closestMatch
+                ? formatCurrency(closestMatch.proposal.proposed_price, closestMatch.proposal.currency)
+                : formatCurrency(estimate.typical, estimate.currency)}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {Math.round(closestMatch.similarity * 100)}% similar project
-            </p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 rounded-lg bg-secondary/50">
-            <TrendingDown className="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-              Low End
-            </p>
-            <p className="text-lg font-bold mt-1">
-              {formatCurrency(estimate.low, estimate.currency)}
-            </p>
-            <p className="text-xs text-muted-foreground">15th percentile</p>
+            {closestMatch && (
+              <p className="text-xs text-muted-foreground">
+                {Math.round(closestMatch.similarity * 100)}% similar project
+              </p>
+            )}
           </div>
 
           <div className="text-center p-4 rounded-lg bg-secondary/50">
-            <Target className="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-              Typical
-            </p>
-            <p className="text-lg font-bold mt-1">
-              {formatCurrency(estimate.typical, estimate.currency)}
-            </p>
-            <p className="text-xs text-muted-foreground">50th percentile</p>
-          </div>
-
-          <div className="text-center p-4 rounded-lg bg-secondary/50">
-            <TrendingUp className="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
+            <TrendingUp className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
               High End
             </p>
-            <p className="text-lg font-bold mt-1">
-              {formatCurrency(estimate.high, estimate.currency)}
+            <p className="text-xl font-bold mt-1">
+              {formatCurrency(highPrice, estimate.currency)}
             </p>
-            <p className="text-xs text-muted-foreground">85th percentile</p>
           </div>
         </div>
       </CardContent>

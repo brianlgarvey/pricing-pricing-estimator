@@ -74,7 +74,7 @@ export function PriceChart({ matches, estimate }: PriceChartProps) {
           <div>
             <CardTitle className="text-lg">Price Distribution</CardTitle>
             <CardDescription>
-              Each dot represents a real proposal from a similar project
+              Each dot represents a similar historical project
             </CardDescription>
           </div>
         </div>
@@ -195,7 +195,7 @@ export function PriceChart({ matches, estimate }: PriceChartProps) {
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-foreground/30" />
             <span className="text-[11px] text-muted-foreground">
-              Proposals ({prices.length})
+              Projects ({prices.length})
             </span>
           </div>
           <div className="flex items-center gap-1.5">

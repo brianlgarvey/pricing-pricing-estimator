@@ -47,7 +47,7 @@ export function ProjectInput({ onAnalyze, isAnalyzing }: ProjectInputProps) {
         <CardTitle className="text-lg">Describe Your Project</CardTitle>
         <CardDescription>
           Enter a description of your HubSpot project to get a price estimate
-          based on similar historical proposals.
+          based on similar historical projects.
         </CardDescription>
       </CardHeader>
       <CardContent>
