@@ -63,7 +63,7 @@ export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }:
   return (
     <div className="mx-auto max-w-3xl py-8">
       <div className="mb-6 text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">Describe Your Project</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Get a Price Estimate</h2>
         <p className="mt-2 text-muted-foreground">
           Enter a description of your HubSpot project to get a price estimate based on similar historical projects.
         </p>
