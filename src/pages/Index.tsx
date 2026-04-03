@@ -116,7 +116,7 @@ export default function Index() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-8">
+      <main className="flex flex-1 flex-col mx-auto w-full max-w-5xl px-4 py-8">
         {state === "loading" && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />

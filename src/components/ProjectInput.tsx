@@ -61,14 +61,14 @@ export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }:
   };
 
   return (
-    <div className="mx-auto max-w-3xl py-8">
-      <div className="mb-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center -mt-24">
+      <div className="mb-8 text-center">
         <h2 className="text-4xl font-semibold tracking-tight">Get a Price Estimate</h2>
-        <p className="mt-2 text-muted-foreground">
+        <p className="mt-4 text-muted-foreground">
           Enter a description of your HubSpot project to get a price estimate based on similar historical projects.
         </p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-[650px] space-y-4">
         <Textarea
           id="description"
           placeholder="e.g., We need to set up HubSpot Marketing Hub Professional with custom workflows, lead scoring, and integration with our existing Salesforce CRM..."
