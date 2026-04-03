@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProjectInput } from "@/components/ProjectInput";
-import { QualificationForm } from "@/components/QualificationForm";
+
 import { PriceDisplay } from "@/components/PriceDisplay";
 import { EstimateFeedback } from "@/components/EstimateFeedback";
 import { SimilarProjectsList } from "@/components/SimilarProjectsList";
@@ -12,10 +12,10 @@ import { buildCorpus, findSimilar, type TfIdfCorpus, type SimilarMatch } from "@
 import { analyzeScopeSignals } from "@/lib/scopeAnalyzer";
 import { calculatePriceEstimate, type PriceEstimate } from "@/lib/priceCalculator";
 import { Disclaimer, MatchCta } from "@/components/DisclaimerCta";
-import { submitEstimate, updateSubmissionQualification, submitFeedback } from "@/lib/supabase";
+import { submitEstimate, submitFeedback } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
 
-type AppState = "loading" | "ready" | "analyzing" | "qualifying" | "results" | "error";
+type AppState = "loading" | "ready" | "analyzing" | "results" | "error";
 
 export default function Index() {
   const [state, setState] = useState<AppState>("loading");
@@ -71,7 +71,7 @@ export default function Index() {
           setPriceEstimate(estimate);
           setUserEmail(email);
           setUserDescription(description);
-          setState("qualifying");
+          setState("results");
 
           // Submit to Supabase — store the promise so qualification
           // handler can await the ID even if it hasn't resolved yet
@@ -89,27 +89,6 @@ export default function Index() {
       }, 50);
     },
     []
-  );
-
-  const handleQualificationSubmit = useCallback(
-    async (jobTitle: string, expectedCost: string, companySize: string) => {
-      setState("results");
-
-      // Await the submission ID if it hasn't resolved yet
-      const id = submissionId ?? (await submissionIdPromiseRef.current);
-      if (id && priceEstimate) {
-        updateSubmissionQualification(
-          id,
-          jobTitle,
-          expectedCost,
-          companySize,
-          userEmail,
-          userDescription,
-          priceEstimate
-        );
-      }
-    },
-    [submissionId, priceEstimate, userEmail, userDescription]
   );
 
   const handleFeedbackSubmit = useCallback(
@@ -166,10 +145,6 @@ export default function Index() {
             onAnalyze={handleAnalyze}
             isAnalyzing={state === "analyzing"}
           />
-        )}
-
-        {state === "qualifying" && (
-          <QualificationForm onSubmit={handleQualificationSubmit} />
         )}
 
         {state === "results" && priceEstimate && (
