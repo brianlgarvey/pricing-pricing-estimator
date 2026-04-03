@@ -11,7 +11,7 @@ export function Header() {
       </a>
       <nav className="ml-auto flex items-center gap-2 text-sm">
         <a
-          href="https://rfp-agent-brown.vercel.app"
+          href="https://rfp.profound.ly"
           className="flex items-center gap-1.5 text-gray-400 transition-colors hover:text-gray-600"
         >
           <span className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[11px] leading-none text-gray-400">1</span>
