@@ -1,6 +1,6 @@
 export function Header() {
   return (
-    <header className="relative flex items-center border-b border-[#E5E7EB] bg-white px-4 py-3">
+    <header className="relative flex items-center border-b border-[#E5E7EB] bg-white px-8 py-3">
       <a href="https://profound.ly" target="_blank" rel="noopener noreferrer">
         <img
           src="https://profound.ly/hs-fs/hubfs/Graphics/Logo/White%20Background/fulllogo_transparent_nobuffer.png"
