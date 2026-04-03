@@ -27,8 +27,6 @@ export default function Index() {
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const submissionIdPromiseRef = useRef<Promise<string | null>>(Promise.resolve(null));
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [userDescription, setUserDescription] = useState<string>("");
 
   useEffect(() => {
     async function init() {
@@ -69,8 +67,7 @@ export default function Index() {
 
           setMatches(similar);
           setPriceEstimate(estimate);
-          setUserEmail(email);
-          setUserDescription(description);
+
           setState("results");
 
           // Submit to Supabase — store the promise so qualification
@@ -105,8 +102,6 @@ export default function Index() {
     setMatches([]);
     setPriceEstimate(null);
     setSubmissionId(null);
-    setUserEmail("");
-    setUserDescription("");
     setState("ready");
   }, []);
 
