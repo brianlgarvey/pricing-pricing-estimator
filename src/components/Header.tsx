@@ -1,6 +1,6 @@
 export function Header() {
   return (
-    <header className="border-b border-[#E5E7EB] bg-white">
+    <header className="relative z-10 border-b border-[#E5E7EB] bg-white">
       <div className="mx-auto flex max-w-6xl items-center px-8 py-3">
       <a href="https://profound.ly" target="_blank" rel="noopener noreferrer">
         <img
