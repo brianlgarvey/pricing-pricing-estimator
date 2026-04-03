@@ -13,11 +13,10 @@ import { TrendingUp, TrendingDown, Target } from "lucide-react";
 
 interface PriceDisplayProps {
   estimate: PriceEstimate;
-  closestMatch?: SimilarMatch;
   matches?: SimilarMatch[];
 }
 
-export function PriceDisplay({ estimate, closestMatch, matches }: PriceDisplayProps) {
+export function PriceDisplay({ estimate, matches }: PriceDisplayProps) {
   const confidenceColors = {
     low: "bg-amber-100 text-amber-800 border-amber-200",
     medium: "bg-blue-100 text-blue-800 border-blue-200",
@@ -36,6 +35,15 @@ export function PriceDisplay({ estimate, closestMatch, matches }: PriceDisplayPr
     .filter((p) => p > 0) ?? [];
   const lowPrice = prices.length > 0 ? Math.min(...prices) : estimate.low;
   const highPrice = prices.length > 0 ? Math.max(...prices) : estimate.high;
+
+  // Average of top 10 most similar projects (matches are sorted by similarity desc)
+  const top10Prices = matches
+    ?.slice(0, 10)
+    .map((m) => m.proposal.proposed_price)
+    .filter((p) => p > 0) ?? [];
+  const avgTop10 = top10Prices.length > 0
+    ? Math.round(top10Prices.reduce((sum, p) => sum + p, 0) / top10Prices.length)
+    : estimate.typical;
 
   return (
     <Card>
@@ -67,18 +75,14 @@ export function PriceDisplay({ estimate, closestMatch, matches }: PriceDisplayPr
           <div className="text-center p-4 rounded-lg bg-primary/5 border-2 border-primary/20">
             <Target className="w-5 h-5 mx-auto mb-2 text-primary" />
             <p className="text-xs text-primary font-medium uppercase tracking-wide">
-              Closest Match
+              Estimated Price
             </p>
             <p className="text-2xl font-bold mt-1 text-primary">
-              {closestMatch
-                ? formatCurrency(closestMatch.proposal.proposed_price, closestMatch.proposal.currency)
-                : formatCurrency(estimate.typical, estimate.currency)}
+              {formatCurrency(avgTop10, estimate.currency)}
             </p>
-            {closestMatch && (
-              <p className="text-xs text-muted-foreground">
-                {Math.round(closestMatch.similarity * 100)}% similar project
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Avg. of top {Math.min(top10Prices.length, 10)} similar projects
+            </p>
           </div>
 
           <div className="text-center p-4 rounded-lg bg-secondary/50">

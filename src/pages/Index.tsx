@@ -154,7 +154,7 @@ export default function Index() {
               </button>
             </div>
 
-            <PriceDisplay estimate={priceEstimate} closestMatch={matches[0]} matches={matches} />
+            <PriceDisplay estimate={priceEstimate} matches={matches} />
 
             <Disclaimer />
 
