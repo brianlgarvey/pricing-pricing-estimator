@@ -18,9 +18,18 @@ export function ProjectInput({ onAnalyze, isAnalyzing }: ProjectInputProps) {
     const params = new URLSearchParams(window.location.search);
     const urlDescription = params.get("description");
     const urlEmail = params.get("email");
-    if (urlDescription) setDescription(urlDescription);
-    if (urlEmail) setEmail(urlEmail);
-  }, []);
+    if (urlDescription && urlEmail) {
+      setDescription(urlDescription);
+      setEmail(urlEmail);
+      const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(urlEmail);
+      if (urlDescription.trim() && validEmail) {
+        onAnalyze(urlDescription.trim(), urlEmail.trim());
+      }
+    } else {
+      if (urlDescription) setDescription(urlDescription);
+      if (urlEmail) setEmail(urlEmail);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const canSubmit = description.trim() && isValidEmail && !isAnalyzing;
