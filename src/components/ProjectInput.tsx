@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Paperclip } from "lucide-react";
+import { extractTextFromFile } from "@/lib/extractText";
 
 interface ProjectInputProps {
   onSubmitDescription: (description: string) => void;
@@ -11,6 +12,9 @@ interface ProjectInputProps {
 
 export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }: ProjectInputProps) {
   const [description, setDescription] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -27,12 +31,32 @@ export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }:
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canSubmit = description.trim() && !isAnalyzing;
+  const canSubmit = description.trim() && !isAnalyzing && !isUploading;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (canSubmit) {
       onSubmitDescription(description.trim());
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError("");
+    setIsUploading(true);
+    try {
+      const text = await extractTextFromFile(file);
+      if (text.trim()) {
+        setDescription(text.trim());
+      } else {
+        setUploadError("Could not extract text from this file. Please try a different format.");
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Failed to read file");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -51,7 +75,7 @@ export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }:
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[200px] resize-y text-[15px]"
-          disabled={isAnalyzing}
+          disabled={isAnalyzing || isUploading}
         />
 
         <Button
@@ -73,6 +97,35 @@ export function ProjectInput({ onSubmitDescription, onAutoSubmit, isAnalyzing }:
           )}
         </Button>
       </form>
+      <div className="mt-3 flex flex-col items-center gap-1.5">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading || isAnalyzing}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Extracting text...
+            </>
+          ) : (
+            <>
+              <Paperclip className="h-3 w-3" />
+              or upload a document (PDF, Word, or text)
+            </>
+          )}
+        </button>
+        {uploadError && (
+          <p className="text-xs text-red-500">{uploadError}</p>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.docx,.txt,.md"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+      </div>
     </div>
   );
 }
