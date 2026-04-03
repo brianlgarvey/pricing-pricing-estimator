@@ -99,6 +99,8 @@ export default function Index() {
   );
 
   const handleReset = useCallback(() => {
+    // Clear URL params so auto-submit doesn't re-trigger
+    window.history.replaceState({}, "", window.location.pathname);
     setMatches([]);
     setPriceEstimate(null);
     setSubmissionId(null);
@@ -146,12 +148,21 @@ export default function Index() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Analysis Results</h2>
-              <button
-                onClick={handleReset}
-                className="text-sm text-primary hover:underline"
-              >
-                New estimate
-              </button>
+              <div className="flex items-center gap-3 text-sm">
+                <a
+                  href="https://rfp-agent-brown.vercel.app"
+                  className="text-primary hover:underline"
+                >
+                  Create a new brief
+                </a>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={handleReset}
+                  className="text-primary hover:underline"
+                >
+                  New estimate
+                </button>
+              </div>
             </div>
 
             <PriceDisplay estimate={priceEstimate} matches={matches} />
