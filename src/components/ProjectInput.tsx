@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,14 @@ interface ProjectInputProps {
 export function ProjectInput({ onAnalyze, isAnalyzing }: ProjectInputProps) {
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlDescription = params.get("description");
+    const urlEmail = params.get("email");
+    if (urlDescription) setDescription(urlDescription);
+    if (urlEmail) setEmail(urlEmail);
+  }, []);
 
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const canSubmit = description.trim() && isValidEmail && !isAnalyzing;
