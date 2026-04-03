@@ -48,6 +48,22 @@ export async function submitEstimate(
       .limit(1)
       .single();
 
+    // Send notification email
+    supabase.functions.invoke("notify-submission", {
+      body: {
+        email,
+        description,
+        estimate: {
+          low: estimate.low,
+          typical: estimate.typical,
+          high: estimate.high,
+          currency: estimate.currency,
+          matchCount: estimate.matchCount,
+          confidence: estimate.confidence,
+        },
+      },
+    }).catch(() => console.warn("Failed to send notification"));
+
     return data?.id ?? null;
   } catch {
     console.warn("Failed to submit estimate");
