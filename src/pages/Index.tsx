@@ -11,7 +11,9 @@ import { loadProposals } from "@/lib/csvParser";
 import { buildCorpus, findSimilar, type TfIdfCorpus, type SimilarMatch } from "@/lib/similarity";
 import { analyzeScopeSignals } from "@/lib/scopeAnalyzer";
 import { calculatePriceEstimate, type PriceEstimate } from "@/lib/priceCalculator";
-import { Disclaimer } from "@/components/DisclaimerCta";
+import { Disclaimer, MatchCta } from "@/components/DisclaimerCta";
+import { PricingDrivers } from "@/components/PricingDrivers";
+import { ProjectRecap } from "@/components/ProjectRecap";
 import { submitEstimate } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
 
@@ -174,17 +176,23 @@ export default function Index() {
               </button>
             </div>
 
-            <PriceDisplay estimate={priceEstimate} matches={matches} />
+            <ProjectRecap description={pendingDescription} />
+
+            {matches.length >= 3 ? (
+              <PriceChart matches={matches} estimate={priceEstimate} />
+            ) : (
+              <PriceDisplay estimate={priceEstimate} matches={matches} />
+            )}
 
             <Disclaimer />
 
+            <PricingDrivers />
+
             <EstimateFeedback />
 
-            {matches.length >= 3 && (
-              <PriceChart matches={matches} estimate={priceEstimate} />
-            )}
-
             <SimilarProjectsList matches={matches} />
+
+            <MatchCta />
           </div>
         )}
       </main>

@@ -6,10 +6,23 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { SimilarMatch } from "@/lib/similarity";
 import type { PriceEstimate } from "@/lib/priceCalculator";
 import { formatCurrency, trimOutliers } from "@/lib/priceCalculator";
 import { TrendingUp } from "lucide-react";
+
+const CONFIDENCE_COLORS = {
+  low: "bg-amber-100 text-amber-800 border-amber-200",
+  medium: "bg-blue-100 text-blue-800 border-blue-200",
+  high: "bg-green-100 text-green-800 border-green-200",
+} as const;
+
+const CONFIDENCE_LABELS = {
+  low: "Low Confidence",
+  medium: "Medium Confidence",
+  high: "High Confidence",
+} as const;
 
 interface PriceChartProps {
   matches: SimilarMatch[];
@@ -69,14 +82,22 @@ export function PriceChart({ matches, estimate }: PriceChartProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-muted-foreground" />
-          <div>
-            <CardTitle className="text-lg">Price Distribution</CardTitle>
-            <CardDescription>
-              Each dot represents a similar historical project
-            </CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <CardTitle className="text-lg">Price Estimate</CardTitle>
+              <CardDescription>
+                Based on {prices.length} similar projects — each dot is one
+              </CardDescription>
+            </div>
           </div>
+          <Badge
+            className={CONFIDENCE_COLORS[estimate.confidence]}
+            variant="outline"
+          >
+            {CONFIDENCE_LABELS[estimate.confidence]}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent className="pt-2">
