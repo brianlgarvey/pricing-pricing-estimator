@@ -7,8 +7,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { SimilarMatch } from "@/lib/similarity";
-import type { PriceEstimate } from "@/lib/priceCalculator";
+import type { SimilarMatch, PriceEstimate } from "@/lib/api";
 import { formatCurrency, trimOutliers } from "@/lib/priceCalculator";
 import { TrendingUp } from "lucide-react";
 
@@ -31,7 +30,7 @@ interface PriceChartProps {
 
 export function PriceChart({ matches, estimate }: PriceChartProps) {
   const rawPrices = matches
-    .map((m) => m.proposal.proposed_price)
+    .map((m) => m.price)
     .sort((a, b) => a - b);
   const prices = trimOutliers(rawPrices);
   const [hoveredDot, setHoveredDot] = useState<number | null>(null);
