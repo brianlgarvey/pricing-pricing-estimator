@@ -75,19 +75,9 @@ async function main() {
 
   console.log(`${proposals.length} valid proposals after filtering`);
 
-  // Truncate existing data
-  console.log("Clearing existing proposals...");
-  const { error: deleteError } = await supabase
-    .from("proposals")
-    .delete()
-    .neq("id", 0); // delete all rows
-
-  if (deleteError) {
-    console.error("Failed to clear proposals:", deleteError.message);
-    process.exit(1);
-  }
-
-  // Insert in batches of 500
+  // Upsert the new data first, then remove anything no longer present. This
+  // avoids the empty-table window a delete-then-insert would create: the
+  // `estimate` function always sees a fully populated table.
   const BATCH_SIZE = 500;
   let inserted = 0;
 
@@ -106,10 +96,41 @@ async function main() {
     }
 
     inserted += batch.length;
-    console.log(`  Inserted ${inserted}/${proposals.length}`);
+    console.log(`  Upserted ${inserted}/${proposals.length}`);
   }
 
-  console.log(`\nDone. ${inserted} proposals imported successfully.`);
+  // Delete stale rows: any proposal_id in the table but not in this import.
+  const importedIds = new Set(proposals.map((p) => p.proposal_id));
+  const { data: existing, error: fetchError } = await supabase
+    .from("proposals")
+    .select("proposal_id");
+
+  if (fetchError) {
+    console.error("Failed to read existing proposals:", fetchError.message);
+    process.exit(1);
+  }
+
+  const staleIds = (existing ?? [])
+    .map((r) => r.proposal_id as number)
+    .filter((id) => !importedIds.has(id));
+
+  if (staleIds.length > 0) {
+    console.log(`Removing ${staleIds.length} stale proposals...`);
+    for (let i = 0; i < staleIds.length; i += BATCH_SIZE) {
+      const chunk = staleIds.slice(i, i + BATCH_SIZE);
+      const { error: deleteError } = await supabase
+        .from("proposals")
+        .delete()
+        .in("proposal_id", chunk);
+
+      if (deleteError) {
+        console.error("Failed to delete stale proposals:", deleteError.message);
+        process.exit(1);
+      }
+    }
+  }
+
+  console.log(`\nDone. ${inserted} proposals imported, ${staleIds.length} removed.`);
 }
 
 main().catch((err) => {
