@@ -19,10 +19,13 @@ create table if not exists proposals (
 -- Index for potential future queries by job_id
 create index if not exists idx_proposals_job_id on proposals (job_id);
 
--- RLS: the table is read-only from the anon/authenticated roles.
--- Only the service role (used by edge functions) can insert/update/delete.
+-- RLS: no policies are defined for anon/authenticated, so with RLS enabled
+-- those roles cannot read, insert, update, or delete any rows. The only access
+-- path is the `estimate` edge function, which uses the service role key and
+-- bypasses RLS. This keeps the raw proposal data (including free-text
+-- job_description) off the public PostgREST API served with the publishable key.
 alter table proposals enable row level security;
 
-create policy "Allow read access for all users"
-  on proposals for select
-  using (true);
+-- Explicitly drop the previously permissive read policy in case an earlier
+-- version of this migration was already applied to the database.
+drop policy if exists "Allow read access for all users" on proposals;
