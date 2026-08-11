@@ -41,14 +41,17 @@ export interface EstimateResponse {
 // ---------------------------------------------------------------------------
 export async function fetchEstimate(
   description: string,
-  email?: string
+  email?: string,
+  firstName?: string,
+  lastName?: string,
+  turnstileToken?: string
 ): Promise<EstimateResponse> {
   if (!supabase) {
     throw new Error("Supabase not configured");
   }
 
   const { data, error } = await supabase.functions.invoke("estimate", {
-    body: { description, email },
+    body: { description, email, firstName, lastName, turnstileToken },
   });
 
   if (error) {

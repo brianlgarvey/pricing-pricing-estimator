@@ -5,6 +5,8 @@ const NOTIFY_EMAIL = "brian@profound.ly";
 
 interface EstimatePayload {
   email: string;
+  firstName?: string;
+  lastName?: string;
   description: string;
   jobTitle?: string;
   expectedCost?: string;
@@ -43,7 +45,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, description, jobTitle, expectedCost, companySize, estimate }: EstimatePayload = await req.json();
+    const { email, firstName, lastName, description, jobTitle, expectedCost, companySize, estimate }: EstimatePayload = await req.json();
+
+    const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
     if (!RESEND_API_KEY) {
       console.error("RESEND_API_KEY not configured");
@@ -63,7 +67,11 @@ Deno.serve(async (req) => {
         <p style="color: #6b7280; margin-top: 0;">Someone just used the Project Pricing Estimator</p>
 
         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-          <table style="width: 100%; border-collapse: collapse;">
+          <table style="width: 100%; border-collapse: collapse;">${fullName ? `
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">Name</td>
+              <td style="padding: 8px 0; font-weight: 600;">${fullName}</td>
+            </tr>` : ""}
             <tr>
               <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">Email</td>
               <td style="padding: 8px 0; font-weight: 600;">${email}</td>

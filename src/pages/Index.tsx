@@ -27,11 +27,23 @@ export default function Index() {
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(null);
 
   const runAnalysis = useCallback(
-    async (description: string, email: string) => {
+    async (
+      description: string,
+      email: string,
+      firstName?: string,
+      lastName?: string,
+      turnstileToken?: string
+    ) => {
       setState("analyzing");
 
       try {
-        const result = await fetchEstimate(description, email);
+        const result = await fetchEstimate(
+          description,
+          email,
+          firstName,
+          lastName,
+          turnstileToken
+        );
         setMatches(result.matches);
         setPriceEstimate(result.estimate);
         setState("results");
@@ -66,7 +78,13 @@ export default function Index() {
   // Called when user submits email in the modal
   const handleEmailSubmit = useCallback(
     (contact: ContactInfo) => {
-      runAnalysis(pendingDescription, contact.email);
+      runAnalysis(
+        pendingDescription,
+        contact.email,
+        contact.firstName,
+        contact.lastName,
+        contact.turnstileToken
+      );
     },
     [pendingDescription, runAnalysis]
   );
