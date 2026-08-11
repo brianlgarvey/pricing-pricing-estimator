@@ -77,7 +77,6 @@ function classifyProject(description: string): ClassificationResult {
   const categories = sorted.map(([cat]) => cat);
   const primaryCategory = categories[0] || "General";
   const maxScore = sorted.length > 0 ? sorted[0][1] : 0;
-  const totalKeywords = Object.values(CATEGORY_KEYWORDS).flat().length;
   const confidence = Math.min(maxScore / 5, 1);
 
   return { categories, primaryCategory, confidence };
@@ -107,7 +106,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
-  } catch (err) {
+  } catch {
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       {
