@@ -378,6 +378,37 @@ function getComplexityLevel(
 // Minimum price threshold
 const MIN_PROJECT_PRICE = 200;
 
+// Input bounds (see handler validation)
+const MAX_DESCRIPTION_LENGTH = 5000;
+const MAX_FIELD_LENGTH = 200;
+
+// ---------------------------------------------------------------------------
+// Cloudflare Turnstile verification
+// ---------------------------------------------------------------------------
+// Verification is only enforced when TURNSTILE_SECRET_KEY is set. This lets the
+// code ship before the widget is provisioned; setting the secret (and the
+// frontend site key) turns bot protection on without a redeploy.
+const TURNSTILE_SECRET = Deno.env.get("TURNSTILE_SECRET_KEY");
+
+async function verifyTurnstile(token: string, remoteIp: string): Promise<boolean> {
+  const form = new FormData();
+  form.append("secret", TURNSTILE_SECRET!);
+  form.append("response", token);
+  if (remoteIp) form.append("remoteip", remoteIp);
+
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      { method: "POST", body: form }
+    );
+    const data = await res.json();
+    return data.success === true;
+  } catch (err) {
+    console.error("Turnstile verification error:", err);
+    return false;
+  }
+}
+
 function trimOutliers(prices: number[]): number[] {
   if (prices.length < 4) return prices;
   const sorted = [...prices].sort((a, b) => a - b);
@@ -528,13 +559,19 @@ function calculatePriceEstimate(
 // ---------------------------------------------------------------------------
 function anonymizeTitle(title: string): string {
   return title
-    // Remove "for <CompanyName>" patterns at the end or mid-title
-    .replace(/\s+for\s+[A-Z][A-Za-z&',.\-\s]{1,40}(?:\s*[-–—]\s*|$)/g, " ")
-    .replace(/\s+for\s+[A-Z][A-Za-z&',.\-\s]{1,40}$/g, "")
+    // Remove "for/at/with <CompanyName>" patterns mid-title (before a separator)
+    .replace(/\s+(?:for|at|with)\s+[A-Z][A-Za-z0-9&',.\s-]{1,40}(?=\s*[-–—|:])/g, " ")
+    // ...and the same trailing at the end of the title
+    .replace(/\s+(?:for|at|with)\s+[A-Z][A-Za-z0-9&',.\s-]{1,40}$/g, "")
+    // Remove a trailing "<sep> Company Name" tail (e.g. "... | Acme Corp")
+    .replace(/\s*[-–—|:]\s*[A-Z][A-Za-z0-9&',.\s-]{1,40}$/g, "")
     // Remove parenthesized company references like "(Acme Corp)"
-    .replace(/\s*\([A-Z][A-Za-z&',.\-\s]{1,40}\)\s*/g, " ")
-    // Clean up extra whitespace
+    .replace(/\s*\([A-Z][A-Za-z0-9&',.\s-]{1,40}\)\s*/g, " ")
+    // Remove leading possessive company names like "Acme's ..."
+    .replace(/^[A-Z][A-Za-z0-9&',.-]{1,40}['’]s\s+/g, "")
+    // Clean up extra whitespace and dangling separators
     .replace(/\s+/g, " ")
+    .replace(/\s*[-–—|:]\s*$/g, "")
     .trim();
 }
 
@@ -551,11 +588,44 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { description, email } = await req.json();
+    const { description, email, firstName, lastName, turnstileToken } =
+      await req.json();
 
     if (!description || typeof description !== "string") {
       return jsonResponse({ error: "Missing or invalid 'description' field" }, 400);
     }
+
+    // ---- Bot protection: verify the Turnstile token when configured ----
+    if (TURNSTILE_SECRET) {
+      if (typeof turnstileToken !== "string" || !turnstileToken) {
+        return jsonResponse({ error: "Verification required" }, 403);
+      }
+      const remoteIp =
+        req.headers.get("cf-connecting-ip") ||
+        req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+        "";
+      const verified = await verifyTurnstile(turnstileToken, remoteIp);
+      if (!verified) {
+        return jsonResponse({ error: "Verification failed" }, 403);
+      }
+    }
+
+    // Bound the inputs. The description is used to build a per-request TF-IDF
+    // query and is echoed into notification emails, so cap it to keep the
+    // function cheap and to limit abuse via oversized payloads.
+    if (description.length > MAX_DESCRIPTION_LENGTH) {
+      return jsonResponse(
+        { error: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer` },
+        400
+      );
+    }
+    if (email && (typeof email !== "string" || email.length > MAX_FIELD_LENGTH)) {
+      return jsonResponse({ error: "Invalid 'email' field" }, 400);
+    }
+    const safeFirstName =
+      typeof firstName === "string" ? firstName.slice(0, MAX_FIELD_LENGTH) : "";
+    const safeLastName =
+      typeof lastName === "string" ? lastName.slice(0, MAX_FIELD_LENGTH) : "";
 
     // ---- Supabase client (service role for full table access) ----
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -607,45 +677,55 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- Save submission (fire-and-forget) ----
+    // ---- Save submission + notify ----
+    // These run after the response is sent, but registered via
+    // EdgeRuntime.waitUntil so the isolate is kept alive until they settle
+    // (a bare fire-and-forget promise can be cancelled once we return).
     if (email && typeof email === "string") {
-      const submissionPayload = {
-        email,
-        description,
-        estimate_low: estimate.low,
-        estimate_typical: estimate.typical,
-        estimate_high: estimate.high,
-        estimate_currency: estimate.currency,
-        match_count: estimate.matchCount,
-        confidence: estimate.confidence,
-      };
-
-      supabase
-        .from("submissions")
-        .insert(submissionPayload)
-        .then(({ error: insertError }) => {
-          if (insertError) {
-            console.warn("Failed to save submission:", insertError.message);
-          }
-        });
-
-      // Send notification (fire-and-forget)
-      supabase.functions
-        .invoke("notify-submission", {
-          body: {
+      const persistAndNotify = (async () => {
+        const { error: insertError } = await supabase
+          .from("submissions")
+          .insert({
             email,
+            first_name: safeFirstName || null,
+            last_name: safeLastName || null,
             description,
-            estimate: {
-              low: estimate.low,
-              typical: estimate.typical,
-              high: estimate.high,
-              currency: estimate.currency,
-              matchCount: estimate.matchCount,
-              confidence: estimate.confidence,
+            estimate_low: estimate.low,
+            estimate_typical: estimate.typical,
+            estimate_high: estimate.high,
+            estimate_currency: estimate.currency,
+            match_count: estimate.matchCount,
+            confidence: estimate.confidence,
+          });
+        if (insertError) {
+          console.warn("Failed to save submission:", insertError.message);
+        }
+
+        const { error: notifyError } = await supabase.functions.invoke(
+          "notify-submission",
+          {
+            body: {
+              email,
+              firstName: safeFirstName,
+              lastName: safeLastName,
+              description,
+              estimate: {
+                low: estimate.low,
+                typical: estimate.typical,
+                high: estimate.high,
+                currency: estimate.currency,
+                matchCount: estimate.matchCount,
+                confidence: estimate.confidence,
+              },
             },
-          },
-        })
-        .catch(() => console.warn("Failed to send notification"));
+          }
+        );
+        if (notifyError) {
+          console.warn("Failed to send notification:", notifyError.message);
+        }
+      })();
+
+      EdgeRuntime.waitUntil(persistAndNotify);
     }
 
     // ---- Return results ----
