@@ -38,8 +38,11 @@ export function PriceChart({ matches, estimate }: PriceChartProps) {
   const layout = useMemo(() => {
     if (prices.length < 3) return null;
 
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
+    // Axis must span both the project prices AND the estimate band, otherwise
+    // an estimate.high above every observed price (e.g. scope-inflated
+    // migrations) pushes the range bar/markers past 100% and out of the card.
+    const min = Math.min(...prices, estimate.low);
+    const max = Math.max(...prices, estimate.high);
     const range = max - min;
     const padding = range * 0.06;
     const xMin = Math.max(0, min - padding);
