@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProjectInput } from "@/components/ProjectInput";
@@ -7,22 +7,17 @@ import { PriceDisplay } from "@/components/PriceDisplay";
 import { EstimateFeedback } from "@/components/EstimateFeedback";
 import { SimilarProjectsList } from "@/components/SimilarProjectsList";
 import { PriceChart } from "@/components/PriceChart";
-import { loadProposals } from "@/lib/csvParser";
-import { buildCorpus, findSimilar, type TfIdfCorpus, type SimilarMatch } from "@/lib/similarity";
-import { analyzeScopeSignals } from "@/lib/scopeAnalyzer";
-import { calculatePriceEstimate, type PriceEstimate } from "@/lib/priceCalculator";
+import { fetchEstimate, type PriceEstimate, type SimilarMatch } from "@/lib/api";
 import { Disclaimer, MatchCta } from "@/components/DisclaimerCta";
 import { PricingDrivers } from "@/components/PricingDrivers";
 import { ProjectRecap } from "@/components/ProjectRecap";
-import { submitEstimate } from "@/lib/supabase";
-import { Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
-type AppState = "loading" | "ready" | "email-capture" | "analyzing" | "results" | "error";
+type AppState = "ready" | "email-capture" | "analyzing" | "results" | "error";
 
 export default function Index() {
-  const [state, setState] = useState<AppState>("loading");
+  const [state, setState] = useState<AppState>("ready");
   const [error, setError] = useState<string>("");
-  const corpusRef = useRef<TfIdfCorpus | null>(null);
 
   // Pending description (submitted before email capture)
   const [pendingDescription, setPendingDescription] = useState("");
@@ -30,50 +25,34 @@ export default function Index() {
   // Results
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(null);
-  const submissionIdPromiseRef = useRef<Promise<string | null>>(Promise.resolve(null));
 
-  useEffect(() => {
-    async function init() {
+  const runAnalysis = useCallback(
+    async (
+      description: string,
+      email: string,
+      firstName?: string,
+      lastName?: string,
+      turnstileToken?: string
+    ) => {
+      setState("analyzing");
+
       try {
-        const proposals = await loadProposals();
-        const corpus = buildCorpus(proposals);
-        corpusRef.current = corpus;
-        setState("ready");
+        const result = await fetchEstimate(
+          description,
+          email,
+          firstName,
+          lastName,
+          turnstileToken
+        );
+        setMatches(result.matches);
+        setPriceEstimate(result.estimate);
+        setState("results");
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to load proposal data"
+          err instanceof Error ? err.message : "Analysis failed"
         );
         setState("error");
       }
-    }
-    init();
-  }, []);
-
-  const runAnalysis = useCallback(
-    (description: string, email: string) => {
-      if (!corpusRef.current) return;
-
-      setState("analyzing");
-
-      setTimeout(() => {
-        try {
-          const corpus = corpusRef.current!;
-          const similar = findSimilar(description, corpus);
-          const scope = analyzeScopeSignals(description);
-          const estimate = calculatePriceEstimate(similar, scope);
-
-          setMatches(similar);
-          setPriceEstimate(estimate);
-          setState("results");
-
-          submissionIdPromiseRef.current = submitEstimate(email, description, estimate);
-        } catch (err) {
-          setError(
-            err instanceof Error ? err.message : "Analysis failed"
-          );
-          setState("error");
-        }
-      }, 50);
     },
     []
   );
@@ -99,7 +78,13 @@ export default function Index() {
   // Called when user submits email in the modal
   const handleEmailSubmit = useCallback(
     (contact: ContactInfo) => {
-      runAnalysis(pendingDescription, contact.email);
+      runAnalysis(
+        pendingDescription,
+        contact.email,
+        contact.firstName,
+        contact.lastName,
+        contact.turnstileToken
+      );
     },
     [pendingDescription, runAnalysis]
   );
@@ -119,15 +104,6 @@ export default function Index() {
       <Header />
 
       <main className="flex flex-1 flex-col mx-auto w-full max-w-5xl px-4 py-8">
-        {state === "loading" && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            <p className="text-muted-foreground">
-              Loading proposal data and building similarity index...
-            </p>
-          </div>
-        )}
-
         {state === "error" && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <AlertCircle className="w-8 h-8 text-destructive" />

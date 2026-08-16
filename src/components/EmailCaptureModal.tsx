@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 
 export interface ContactInfo {
   firstName: string;
   lastName: string;
   email: string;
+  turnstileToken: string;
 }
 
 interface EmailCaptureModalProps {
@@ -17,7 +19,20 @@ export function EmailCaptureModal({ open, onSubmit }: EmailCaptureModalProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+    setErrors((prev) => {
+      if (!prev.turnstile) return prev;
+      const rest = { ...prev };
+      delete rest.turnstile;
+      return rest;
+    });
+  }, []);
+
+  const handleExpire = useCallback(() => setTurnstileToken(""), []);
 
   if (!open) return null;
 
@@ -30,6 +45,9 @@ export function EmailCaptureModal({ open, onSubmit }: EmailCaptureModalProps) {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = "Please enter a valid email address";
     }
+    if (turnstileEnabled && !turnstileToken) {
+      newErrors.turnstile = "Please complete the verification";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -41,6 +59,7 @@ export function EmailCaptureModal({ open, onSubmit }: EmailCaptureModalProps) {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim().toLowerCase(),
+      turnstileToken,
     });
   };
 
@@ -94,6 +113,12 @@ export function EmailCaptureModal({ open, onSubmit }: EmailCaptureModalProps) {
             />
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Turnstile onVerify={handleVerify} onExpire={handleExpire} />
+            {errors.turnstile && (
+              <p className="text-xs text-destructive text-center">{errors.turnstile}</p>
             )}
           </div>
           <Button type="submit" className="w-full">

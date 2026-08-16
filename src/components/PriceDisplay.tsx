@@ -6,9 +6,8 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { PriceEstimate } from "@/lib/priceCalculator";
+import type { PriceEstimate, SimilarMatch } from "@/lib/api";
 import { formatCurrency } from "@/lib/priceCalculator";
-import type { SimilarMatch } from "@/lib/similarity";
 import { TrendingUp, TrendingDown, Target } from "lucide-react";
 
 interface PriceDisplayProps {
@@ -31,7 +30,7 @@ export function PriceDisplay({ estimate, matches }: PriceDisplayProps) {
 
   // Compute actual min/max from all matched projects
   const prices = matches
-    ?.map((m) => m.proposal.proposed_price)
+    ?.map((m) => m.price)
     .filter((p) => p > 0) ?? [];
   const lowPrice = prices.length > 0 ? Math.min(...prices) : estimate.low;
   const highPrice = prices.length > 0 ? Math.max(...prices) : estimate.high;
@@ -39,7 +38,7 @@ export function PriceDisplay({ estimate, matches }: PriceDisplayProps) {
   // Average of top 10 most similar projects (matches are sorted by similarity desc)
   const top10Prices = matches
     ?.slice(0, 10)
-    .map((m) => m.proposal.proposed_price)
+    .map((m) => m.price)
     .filter((p) => p > 0) ?? [];
   const avgTop10 = top10Prices.length > 0
     ? Math.round(top10Prices.reduce((sum, p) => sum + p, 0) / top10Prices.length)

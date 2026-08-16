@@ -26,3 +26,6 @@ dist-ssr
 .vercel
 .env
 .env.*
+
+# Proposal data (contains PII; imported into Supabase, not served publicly)
+data/

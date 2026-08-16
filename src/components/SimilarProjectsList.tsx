@@ -5,7 +5,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import type { SimilarMatch } from "@/lib/similarity";
+import type { SimilarMatch } from "@/lib/api";
 import { formatCurrency } from "@/lib/priceCalculator";
 import { FileText } from "lucide-react";
 
@@ -18,17 +18,7 @@ export function SimilarProjectsList({
   matches,
   maxDisplay = 10,
 }: SimilarProjectsListProps) {
-  // Deduplicate by job_id — show only the highest-similarity proposal per job
-  const seenJobs = new Set<number>();
-  const uniqueMatches: SimilarMatch[] = [];
-  for (const match of matches) {
-    if (!seenJobs.has(match.proposal.job_id)) {
-      seenJobs.add(match.proposal.job_id);
-      uniqueMatches.push(match);
-    }
-    if (uniqueMatches.length >= maxDisplay) break;
-  }
-  const displayed = uniqueMatches;
+  const displayed = matches.slice(0, maxDisplay);
 
   return (
     <Card>
@@ -55,7 +45,7 @@ export function SimilarProjectsList({
         <div className="divide-y divide-border/50">
           {displayed.map((match, i) => (
             <div
-              key={match.proposal.proposal_id}
+              key={i}
               className="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center px-3 py-2.5 hover:bg-muted/40 transition-colors"
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -63,14 +53,11 @@ export function SimilarProjectsList({
                   {i + 1}
                 </span>
                 <span className="text-sm truncate">
-                  {match.proposal.job_title}
+                  {match.title}
                 </span>
               </div>
               <span className="text-sm font-semibold tabular-nums w-20 text-right">
-                {formatCurrency(
-                  match.proposal.proposed_price,
-                  match.proposal.currency
-                )}
+                {formatCurrency(match.price, match.currency)}
               </span>
               <div className="w-16 text-right">
                 <span className="inline-block text-xs tabular-nums text-muted-foreground bg-muted/60 rounded-full px-2 py-0.5">
