@@ -38,10 +38,21 @@ function loadScript(): Promise<void> {
 
 interface TurnstileProps {
   onVerify: (token: string) => void;
+  // Fired when a previously issued token expires (before it was used).
   onExpire?: () => void;
+  // Fired on a challenge error (network, blocked script, terminal failure).
+  onError?: () => void;
+  // Fired when the challenge enters interactive mode (the visitor is being
+  // asked to act). Callers can use this to hold off any "stuck widget" timeout.
+  onInteractive?: () => void;
 }
 
-export function Turnstile({ onVerify, onExpire }: TurnstileProps) {
+export function Turnstile({
+  onVerify,
+  onExpire,
+  onError,
+  onInteractive,
+}: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
@@ -55,13 +66,27 @@ export function Turnstile({ onVerify, onExpire }: TurnstileProps) {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: SITE_KEY,
           action: "estimate",
+          // Let the widget auto-recover from transient errors and expiries
+          // rather than stranding the user with a dead token.
+          retry: "auto",
+          "refresh-expired": "auto",
           callback: (token: string) => onVerify(token),
+          // Signals the visitor is being asked to interact (e.g. a checkbox),
+          // so callers can pause a stuck-widget timeout while they solve it.
+          "before-interactive-callback": () => onInteractive?.(),
+          // With refresh-expired: "auto" the widget re-runs the challenge and
+          // fires the callback again with a fresh token; we just notify the
+          // caller so it can drop the now-stale token in the meantime.
           "expired-callback": () => onExpire?.(),
-          "error-callback": () => onExpire?.(),
+          // Distinct from expiry: a real failure the caller should surface.
+          "error-callback": () => {
+            onError?.();
+          },
         });
       })
       .catch(() => {
-        /* network/script errors leave the widget unrendered; submit stays gated */
+        // The script itself failed to load, so no challenge can run.
+        if (!cancelled) onError?.();
       });
 
     return () => {
@@ -71,7 +96,7 @@ export function Turnstile({ onVerify, onExpire }: TurnstileProps) {
         widgetIdRef.current = null;
       }
     };
-  }, [onVerify, onExpire]);
+  }, [onVerify, onExpire, onError, onInteractive]);
 
   if (!SITE_KEY) return null;
   return <div ref={containerRef} className="flex justify-center" />;
