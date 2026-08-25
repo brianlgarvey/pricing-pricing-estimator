@@ -22,6 +22,11 @@ type AppState =
   | "results"
   | "error";
 
+// How long to wait on the auto-submit verifying screen for a silently-stuck
+// widget before giving up. The timer restarts whenever Turnstile enters an
+// interactive challenge, so a visitor actively solving one is never cut off.
+const AUTO_VERIFY_TIMEOUT_MS = 30000;
+
 export default function Index() {
   const [state, setState] = useState<AppState>("ready");
   const [error, setError] = useState<string>("");
@@ -35,6 +40,9 @@ export default function Index() {
   // callback cannot start the analysis twice.
   const autoInitiatedRef = useRef(false);
   const autoVerifiedRef = useRef(false);
+  // Bumped when the auto-submit challenge turns interactive, to restart the
+  // stuck-widget timeout below.
+  const [verifyTick, setVerifyTick] = useState(0);
 
   // Results
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
@@ -111,10 +119,11 @@ export default function Index() {
     [pendingDescription, pendingEmail, runAnalysis]
   );
 
-  // Turnstile failed/expired before producing a token on the auto-submit flow.
-  // Without this the "verifying" screen would hang indefinitely (e.g. the widget
-  // errors, or its script is blocked). Surface an error; the error screen's
-  // "Reload page" re-triggers the hand-off cleanly.
+  // Turnstile errored (or its script was blocked) on the auto-submit flow.
+  // Without this the "verifying" screen would hang indefinitely. Surface an
+  // error; the error screen's "Reload page" re-triggers the hand-off cleanly.
+  // Expiry is handled inside the widget (it refreshes the token), so only real
+  // errors and the timeout below land here.
   const handleAutoVerifyFailure = useCallback(() => {
     if (autoVerifiedRef.current) return; // already proceeded
     setError(
@@ -123,16 +132,20 @@ export default function Index() {
     setState("error");
   }, []);
 
-  // Safety net for the case where Turnstile never fires any callback at all
-  // (e.g. its script is blocked), which would otherwise leave the user stuck on
-  // the verifying screen.
+  // Restart the stuck-widget timeout when the challenge becomes interactive.
+  const handleAutoInteractive = useCallback(() => setVerifyTick((t) => t + 1), []);
+
+  // Safety net for the case where Turnstile renders but never resolves (e.g. its
+  // script is blocked or a hostname mismatch shows an in-widget error without a
+  // callback), which would otherwise leave the user stuck on the verifying
+  // screen. Depends on verifyTick so an interactive challenge resets the clock.
   useEffect(() => {
     if (state !== "verifying") return;
     const timeout = setTimeout(() => {
       if (!autoVerifiedRef.current) handleAutoVerifyFailure();
-    }, 25000);
+    }, AUTO_VERIFY_TIMEOUT_MS);
     return () => clearTimeout(timeout);
-  }, [state, handleAutoVerifyFailure]);
+  }, [state, verifyTick, handleAutoVerifyFailure]);
 
   // Called when user submits email in the modal
   const handleEmailSubmit = useCallback(
@@ -158,6 +171,7 @@ export default function Index() {
     setPendingEmail("");
     autoInitiatedRef.current = false;
     autoVerifiedRef.current = false;
+    setVerifyTick(0);
     setState("ready");
   }, []);
 
@@ -197,7 +211,8 @@ export default function Index() {
             </p>
             <Turnstile
               onVerify={handleAutoVerify}
-              onExpire={handleAutoVerifyFailure}
+              onError={handleAutoVerifyFailure}
+              onInteractive={handleAutoInteractive}
             />
           </div>
         )}

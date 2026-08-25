@@ -34,6 +34,14 @@ export function EmailCaptureModal({ open, onSubmit }: EmailCaptureModalProps) {
 
   const handleExpire = useCallback(() => setTurnstileToken(""), []);
 
+  const handleError = useCallback(() => {
+    setTurnstileToken("");
+    setErrors((prev) => ({
+      ...prev,
+      turnstile: "Verification failed. Please try again.",
+    }));
+  }, []);
+
   if (!open) return null;
 
   const validate = () => {
@@ -116,7 +124,11 @@ export function EmailCaptureModal({ open, onSubmit }: EmailCaptureModalProps) {
             )}
           </div>
           <div className="space-y-2">
-            <Turnstile onVerify={handleVerify} onExpire={handleExpire} />
+            <Turnstile
+              onVerify={handleVerify}
+              onExpire={handleExpire}
+              onError={handleError}
+            />
             {errors.turnstile && (
               <p className="text-xs text-destructive text-center">{errors.turnstile}</p>
             )}
