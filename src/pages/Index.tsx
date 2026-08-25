@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProjectInput } from "@/components/ProjectInput";
 import { EmailCaptureModal, type ContactInfo } from "@/components/EmailCaptureModal";
+import { Turnstile, turnstileEnabled } from "@/components/Turnstile";
 import { PriceDisplay } from "@/components/PriceDisplay";
 import { EstimateFeedback } from "@/components/EstimateFeedback";
 import { SimilarProjectsList } from "@/components/SimilarProjectsList";
@@ -13,14 +14,27 @@ import { PricingDrivers } from "@/components/PricingDrivers";
 import { ProjectRecap } from "@/components/ProjectRecap";
 import { AlertCircle } from "lucide-react";
 
-type AppState = "ready" | "email-capture" | "analyzing" | "results" | "error";
+type AppState =
+  | "ready"
+  | "email-capture"
+  | "verifying"
+  | "analyzing"
+  | "results"
+  | "error";
 
 export default function Index() {
   const [state, setState] = useState<AppState>("ready");
   const [error, setError] = useState<string>("");
 
-  // Pending description (submitted before email capture)
+  // Pending description/email (captured before analysis runs)
   const [pendingDescription, setPendingDescription] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+
+  // Guards for the auto-submit (RFP hand-off) flow, so the ProjectInput
+  // remounting during "analyzing" cannot re-trigger it and the Turnstile
+  // callback cannot start the analysis twice.
+  const autoInitiatedRef = useRef(false);
+  const autoVerifiedRef = useRef(false);
 
   // Results
   const [matches, setMatches] = useState<SimilarMatch[]>([]);
@@ -66,14 +80,59 @@ export default function Index() {
     []
   );
 
-  // Called when URL has both description and email (auto-submit from RFP tool)
+  // Called when URL has both description and email (auto-submit from RFP tool).
+  // This path has no email-capture modal, so when Turnstile is enabled we still
+  // need to obtain a token first (otherwise the edge function rejects the call
+  // with 403). We show a short verifying step that renders the widget, then run
+  // the analysis once it produces a token. Guarded so a ProjectInput remount
+  // during "analyzing" does not re-enter this.
   const handleAutoSubmit = useCallback(
     (description: string, email: string) => {
+      if (autoInitiatedRef.current) return;
+      autoInitiatedRef.current = true;
       setPendingDescription(description);
-      runAnalysis(description, email);
+      setPendingEmail(email);
+      if (turnstileEnabled) {
+        setState("verifying");
+      } else {
+        runAnalysis(description, email);
+      }
     },
     [runAnalysis]
   );
+
+  // Turnstile token arrived for the auto-submit flow.
+  const handleAutoVerify = useCallback(
+    (token: string) => {
+      if (autoVerifiedRef.current) return;
+      autoVerifiedRef.current = true;
+      runAnalysis(pendingDescription, pendingEmail, undefined, undefined, token);
+    },
+    [pendingDescription, pendingEmail, runAnalysis]
+  );
+
+  // Turnstile failed/expired before producing a token on the auto-submit flow.
+  // Without this the "verifying" screen would hang indefinitely (e.g. the widget
+  // errors, or its script is blocked). Surface an error; the error screen's
+  // "Reload page" re-triggers the hand-off cleanly.
+  const handleAutoVerifyFailure = useCallback(() => {
+    if (autoVerifiedRef.current) return; // already proceeded
+    setError(
+      "We couldn't verify your request. Please reload the page and try again."
+    );
+    setState("error");
+  }, []);
+
+  // Safety net for the case where Turnstile never fires any callback at all
+  // (e.g. its script is blocked), which would otherwise leave the user stuck on
+  // the verifying screen.
+  useEffect(() => {
+    if (state !== "verifying") return;
+    const timeout = setTimeout(() => {
+      if (!autoVerifiedRef.current) handleAutoVerifyFailure();
+    }, 25000);
+    return () => clearTimeout(timeout);
+  }, [state, handleAutoVerifyFailure]);
 
   // Called when user submits email in the modal
   const handleEmailSubmit = useCallback(
@@ -96,6 +155,9 @@ export default function Index() {
     setMatches([]);
     setPriceEstimate(null);
     setPendingDescription("");
+    setPendingEmail("");
+    autoInitiatedRef.current = false;
+    autoVerifiedRef.current = false;
     setState("ready");
   }, []);
 
@@ -126,6 +188,18 @@ export default function Index() {
             onAutoSubmit={handleAutoSubmit}
             isAnalyzing={state === "analyzing"}
           />
+        )}
+
+        {state === "verifying" && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24">
+            <p className="text-muted-foreground text-sm">
+              Verifying your request...
+            </p>
+            <Turnstile
+              onVerify={handleAutoVerify}
+              onExpire={handleAutoVerifyFailure}
+            />
+          </div>
         )}
 
         {state === "email-capture" && (
