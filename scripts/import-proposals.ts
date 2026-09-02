@@ -15,10 +15,10 @@
 // By default reads the CSV from data/proposals.csv if no path is given.
 
 import { createClient } from "@supabase/supabase-js";
-import { parse } from "csv-parse/sync";
 import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import { parseProposalCsv, toProposals } from "./lib/proposals-csv";
 
 // Load .env if present. This does not override real exported env vars, and is a
 // no-op when there is no .env, so both the .env and export workflows work.
@@ -27,8 +27,9 @@ dotenv.config({ quiet: true });
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-// The URL is not secret and the frontend already stores it as VITE_SUPABASE_URL,
-// so reuse that as a fallback: an admin then only adds the service role key.
+// The URL is not secret, so if a VITE_SUPABASE_URL is set (e.g. for the frontend
+// build) the import reuses it as a fallback: an admin then only needs to add the
+// service role key.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -46,48 +47,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const csvPath = resolve(process.argv[2] || "data/proposals.csv");
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function parsePrice(raw: string): number {
-  if (!raw) return 0;
-  const cleaned = raw.replace(/[$,£]/g, "");
-  const val = parseFloat(cleaned);
-  return isNaN(val) ? 0 : val;
-}
-
-// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 async function main() {
   console.log(`Reading CSV from: ${csvPath}`);
   const csvText = readFileSync(csvPath, "utf-8");
 
-  const rows = parse(csvText, {
-    columns: true,
-    skip_empty_lines: true,
-    relax_column_count: true,
-    // Strip a leading UTF-8 BOM if present. Without this, a BOM binds to the
-    // first header ("proposal_id"), so every row's id parses as 0, gets
-    // filtered out, and the stale-row cleanup below would wipe the table.
-    bom: true,
-  }) as Record<string, string>[];
-
+  const rows = parseProposalCsv(csvText);
   console.log(`Parsed ${rows.length} rows from CSV`);
 
-  // Map to the columns we keep (stripping PII)
-  const proposals = rows
-    .map((row) => ({
-      proposal_id: parseInt(row.proposal_id) || 0,
-      job_id: parseInt(row.job_id) || 0,
-      job_title: (row.job_title || "").trim(),
-      job_description: (row.job_description || "").trim(),
-      currency: (row.currency || "usd").toLowerCase(),
-      proposed_price: parsePrice(row.proposed_price),
-      proposal_status: (row.proposal_status || "").trim(),
-      created_at: row.created_at || new Date().toISOString(),
-    }))
-    .filter((p) => p.proposal_id > 0 && p.job_title);
-
+  const proposals = toProposals(rows);
   console.log(`${proposals.length} valid proposals after filtering`);
 
   // Safety guard: never let an empty parse wipe the table. The stale-row
