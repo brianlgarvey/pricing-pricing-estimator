@@ -49,17 +49,25 @@ npm run lint     # lint
 
 ### Environment variables
 
-The frontend needs the Supabase project's public credentials (safe to expose;
-they are the publishable, RLS-gated keys):
+For the data refresh below, copy `.env.example` to `.env` (gitignored) and set
+the import script's credentials:
 
-```
-VITE_SUPABASE_URL=<your project url>
-VITE_SUPABASE_PUBLISHABLE_KEY=<your publishable/anon key>
-```
+- `SUPABASE_SERVICE_ROLE_KEY` — server-side only (see the warning below).
+- `SUPABASE_URL` — the project URL. Optional if `VITE_SUPABASE_URL` is set, as
+  the import falls back to it.
 
-Put these in a `.env` file (gitignored). The server-side service role key is
-never used by the frontend; it is only needed by the data import script and the
-deployed Edge Functions (see below).
+> **Never prefix the service role key with `VITE_`.** It bypasses row-level
+> security, and a `VITE_` prefix would bundle it into the public browser build,
+> handing anyone full access to your database. Keep it un-prefixed so Vite never
+> touches it.
+
+The frontend build reads its own public, RLS-gated vars (`VITE_SUPABASE_URL`,
+`VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_TURNSTILE_SITE_KEY`), and the Edge
+Functions read their secrets (`TURNSTILE_SECRET_KEY`, `RESEND_API_KEY`). In a
+deploy these are configured by whoever ships the app (the hosting platform's
+build env and Supabase function secrets); add the `VITE_*` vars to your `.env`
+as well if you run the frontend locally. None of them are needed just to run the
+import.
 
 ## Updating the proposals data
 
@@ -88,19 +96,19 @@ Artisan command in the Profoundly repo; the button is the everyday path.)
 Save the downloaded file to `data/proposals.csv` in this repo. The `data/`
 directory is gitignored, so the CSV is never committed or served publicly.
 
-Provide the target project's server-side credentials. **To update production,
-use the production project's URL and service role key** (from the Supabase
-dashboard: Project Settings -> API). The service role key bypasses RLS, so keep
-it out of the frontend, out of version control, and out of shared logs.
+Make sure your `.env` points at the project you want to update, then run the
+import. **To update production, use the production project's URL and service
+role key** (from the Supabase dashboard: Project Settings -> API).
 
 ```bash
-export SUPABASE_URL="https://<project-ref>.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="<service role key>"
-
 npm run import:proposals
 # or point at a file elsewhere:
 npm run import:proposals -- /path/to/proposals.csv
 ```
+
+The script reads credentials from `.env` (see Environment variables above). For
+a one-off run against a different project you can still export the vars in your
+shell instead; real environment variables take precedence over `.env`.
 
 The script parses the CSV, keeps only the estimator columns, and upserts by
 `proposal_id` in batches, then deletes any rows no longer present in the file.

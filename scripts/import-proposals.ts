@@ -4,29 +4,40 @@
 // Strips PII columns (provider/customer names and IDs) before inserting.
 //
 // Usage:
-//   npx tsx scripts/import-proposals.ts [path/to/proposals.csv]
+//   npm run import:proposals [-- path/to/proposals.csv]
 //
-// Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables
-// (or a .env file in the project root).
+// Reads Supabase credentials from a .env file in the project root (or from real
+// exported environment variables, which take precedence). Needs:
+//   - SUPABASE_URL (falls back to the frontend's VITE_SUPABASE_URL)
+//   - SUPABASE_SERVICE_ROLE_KEY  (server-side only; must NOT be VITE_-prefixed,
+//     or Vite would bundle this RLS-bypassing key into the public browser build)
 //
-// By default reads from public/data/proposals.csv if no path is given.
+// By default reads the CSV from data/proposals.csv if no path is given.
 
 import { createClient } from "@supabase/supabase-js";
 import { parse } from "csv-parse/sync";
+import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { resolve } from "path";
+
+// Load .env if present. This does not override real exported env vars, and is a
+// no-op when there is no .env, so both the .env and export workflows work.
+dotenv.config({ quiet: true });
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const SUPABASE_URL = process.env.SUPABASE_URL;
+// The URL is not secret and the frontend already stores it as VITE_SUPABASE_URL,
+// so reuse that as a fallback: an admin then only adds the service role key.
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error(
-    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables."
+    "Missing Supabase credentials. Add them to your .env (or export them):"
   );
-  console.error("Set them in your environment or a .env file.");
+  console.error("  SUPABASE_URL=...            (or reuse VITE_SUPABASE_URL)");
+  console.error("  SUPABASE_SERVICE_ROLE_KEY=...   (server-side; no VITE_ prefix)");
   process.exit(1);
 }
 
