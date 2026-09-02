@@ -55,6 +55,10 @@ async function main() {
     columns: true,
     skip_empty_lines: true,
     relax_column_count: true,
+    // Strip a leading UTF-8 BOM if present. Without this, a BOM binds to the
+    // first header ("proposal_id"), so every row's id parses as 0, gets
+    // filtered out, and the stale-row cleanup below would wipe the table.
+    bom: true,
   }) as Record<string, string>[];
 
   console.log(`Parsed ${rows.length} rows from CSV`);
@@ -74,6 +78,18 @@ async function main() {
     .filter((p) => p.proposal_id > 0 && p.job_title);
 
   console.log(`${proposals.length} valid proposals after filtering`);
+
+  // Safety guard: never let an empty parse wipe the table. The stale-row
+  // cleanup below deletes every id not present in this import, so proceeding
+  // with zero rows (a wrong/truncated file, a parse failure, an unexpected
+  // header) would clear all proposals. Abort instead and leave the data intact.
+  if (proposals.length === 0) {
+    console.error(
+      "Refusing to import: 0 valid proposals parsed from the CSV. " +
+        "Check the file path, headers, and contents. No changes were made."
+    );
+    process.exit(1);
+  }
 
   // Upsert the new data first, then remove anything no longer present. This
   // avoids the empty-table window a delete-then-insert would create: the
